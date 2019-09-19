@@ -8,15 +8,29 @@
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
 
-// DHT
-#define DHTPIN 14
+//switch button connected to this pin
+#define BUTTON_PIN 12
+//DHT22 sensor is connected to this pin
+#define DHT_PIN 14
+//sensor type is DHT22
 #define DHTTYPE DHT22
-#define JSON_BUFFER 512
+//memory pool size for JsonDocument
+#define JSON_BUFFER_SIZE 512
+//json field names
+#define JSON_SSID "ssid"
+#define JSON_PASSWORD "password"
+#define JSON_TOKEN "token"
+//max sizes of paramaters in config
+#define SSID_SIZE 32
+#define PASSWORD_SIZE 64
+#define TOKEN_SIZE 64
+//filename for config
+#define CONFIG_FILE "/config.json"
 
 struct StoredConfig {
-  char ssid[32];
-  char password[64];
-  char token[32];
+  char ssid[SSID_SIZE];
+  char password[PASSWORD_SIZE];
+  char token[TOKEN_SIZE];
   boolean success;
 };
 
@@ -31,14 +45,13 @@ char thingsboardServer[] = "demo.thingsboard.io";
 WiFiClient wifiClient;
 
 // Initialize DHT sensor.
-DHT dht(DHTPIN, DHTTYPE);
+DHT dht(DHT_PIN, DHTTYPE);
 
 ThingsBoard tb(wifiClient);
 
 int status = WL_IDLE_STATUS;
 unsigned long lastSend;
 
-const int buttonPin = 12;
 boolean isConfigMode;
 
 StoredConfig storedConfig;
@@ -54,7 +67,7 @@ void saveConfigCallback () {
 
 void readMode() {
   // read the state of the pushbutton value:
-  int buttonState = digitalRead(buttonPin);
+  int buttonState = digitalRead(BUTTON_PIN);
 
   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
   if (buttonState == HIGH) {
@@ -72,7 +85,7 @@ void setup()
   Serial.println();
 
   // initialize the pushbutton pin as an input:
-  pinMode(buttonPin, INPUT);
+  pinMode(BUTTON_PIN, INPUT);
 
   readMode();
 
@@ -84,11 +97,8 @@ void setup()
 
   if (SPIFFS.begin()) {
     Serial.println("mounted file system");
-    if (SPIFFS.exists("/config.json")) {
+    if (SPIFFS.exists(CONFIG_FILE)) {
       //file exists, reading and loading
-
-      printFile();
-
       storedConfig = readConfig();
     } else {
       Serial.println("No config file");

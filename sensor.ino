@@ -1,6 +1,6 @@
 SensorData readSensorData()
 {
-  Serial.println("Collecting temperature data.");
+  Serial.println("Collecting temperature data");
   SensorData sd;
   sd.temperature = dht.readTemperature();
   sd.humidity = dht.readHumidity();

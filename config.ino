@@ -1,31 +1,27 @@
-// Prints the content of a file to the Serial
 void printFile() {
-  // Open file for reading
-  Serial.println("---File start---");
-  File file = SPIFFS.open("/config.json", "r");
+  Serial.println("Config file content:");
+  File file = SPIFFS.open(CONFIG_FILE, "r");
   if (!file) {
-    Serial.println(F("Failed to read file"));
+    Serial.println("Failed to open config file");
     return;
   }
-
-  // Extract each characters by one by one
   while (file.available()) {
     Serial.print((char)file.read());
   }
-  // Close the file
   file.close();
-
-  Serial.println("\n---File end---");
 }
 
 StoredConfig readConfig() {
+
+  printFile();
+
   StoredConfig c;
   c.ssid[0] = '\0';
   c.password[0] = '\0';
   c.token[0] = '\0';
 
   Serial.println("Reading config file");
-  File configFile = SPIFFS.open("/config.json", "r");
+  File configFile = SPIFFS.open(CONFIG_FILE, "r");
   if (!configFile) {
     Serial.println("Failed to open config file");
     c.success = false;
@@ -33,9 +29,9 @@ StoredConfig readConfig() {
   }
   Serial.println("Opened config file");
 
-  StaticJsonDocument<JSON_BUFFER> doc;
+  StaticJsonDocument<JSON_BUFFER_SIZE> doc;
 
-  // Deserialize the JSON document
+  Serial.println("Deserializing config file");
   DeserializationError error = deserializeJson(doc, configFile);
   if (error) {
     Serial.print("Deserialize json failed: ");
@@ -48,9 +44,9 @@ StoredConfig readConfig() {
 
   Serial.println("Parsed json");
 
-  JsonVariant ssid = doc["ssid"];
-  JsonVariant password = doc["password"];
-  JsonVariant token = doc["token"];
+  JsonVariant ssid = doc[JSON_SSID];
+  JsonVariant password = doc[JSON_PASSWORD];
+  JsonVariant token = doc[JSON_TOKEN];
   if (ssid.isNull() || password.isNull() || token.isNull()) {
     Serial.println("Invalid json");
     c.success = false;
@@ -63,9 +59,9 @@ StoredConfig readConfig() {
   c.success = true;
 
   Serial.println("Config values:");
-  Serial.print("Wifi SSID: ");
+  Serial.print("WiFi SSID: ");
   Serial.println(c.ssid);
-  Serial.print("Wifi password: ");
+  Serial.print("WiFi password: ");
   Serial.println(c.password);
   Serial.print("Token: ");
   Serial.println(c.token);
@@ -73,21 +69,21 @@ StoredConfig readConfig() {
   return c;
 }
 
-void saveConfig(char * token) {
-  Serial.println("saving config");
+void saveConfig(StoredConfig c) {
+  Serial.println("Saving config");
 
-  StaticJsonDocument<JSON_BUFFER> doc;
+  StaticJsonDocument<JSON_BUFFER_SIZE> doc;
 
-  doc["ssid"] = WiFi.SSID();
-  doc["password"] = WiFi.psk();
-  doc["token"] = token;
+  doc[JSON_SSID] = c.ssid;
+  doc[JSON_PASSWORD] = c.password;
+  doc[JSON_TOKEN] = c.token;
 
-  File configFile = SPIFFS.open("/config.json", "w");
+  File configFile = SPIFFS.open(CONFIG_FILE, "w");
   if (!configFile) {
-    Serial.println("failed to open config file for writing");
+    Serial.println("Failed to open config file for writing");
   } else {
     // Serialize JSON to file
-    if (serializeJson(doc, configFile) == 0) {
+    if (serializeJsonPretty(doc, configFile) == 0) {
       Serial.println("Failed to write to file");
     }
     configFile.close();
