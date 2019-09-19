@@ -18,71 +18,77 @@ void printFile() {
   Serial.println("\n---File end---");
 }
 
-void readConfig() {
+StoredConfig readConfig() {
+  StoredConfig c;
+  c.ssid[0] = '\0';
+  c.password[0] = '\0';
+  c.token[0] = '\0';
+
   Serial.println("Reading config file");
   File configFile = SPIFFS.open("/config.json", "r");
   if (!configFile) {
-    Serial.println("Failed to open config file");;
-    return;
+    Serial.println("Failed to open config file");
+    c.success = false;
+    return c;
   }
-  Serial.println("Opened config file");;
-  size_t size = configFile.size();
-  // Allocate a buffer to store contents of the file.
-  std::unique_ptr<char[]> buf(new char[size]);
+  Serial.println("Opened config file");
 
-  configFile.readBytes(buf.get(), size);
-
-  // Allocate a temporary JsonDocument
-  // Don't forget to change the capacity to match your requirements.
-  // Use arduinojson.org/v6/assistant to compute the capacity.
   StaticJsonDocument<JSON_BUFFER> doc;
 
   // Deserialize the JSON document
-  DeserializationError error = deserializeJson(doc, buf.get());
-
-  if (!error) {
-    Serial.println("\nparsed json");
-
-    strcpy(mqtt_server, doc["mqtt_server"]);
-    strcpy(mqtt_port, doc["mqtt_port"]);
-    strcpy(blynk_token, doc["blynk_token"]);
-
-    Serial.println("Config values:");
-    Serial.print("Wifi SSID: ");
-    Serial.println(mqtt_server);
-    Serial.print("Wifi password: ");
-    Serial.println(mqtt_port);
-    Serial.print("Token: ");
-    Serial.println(blynk_token);
-
-  } else {
-    Serial.println("failed to load json config");
+  DeserializationError error = deserializeJson(doc, configFile);
+  if (error) {
+    Serial.print("Deserialize json failed: ");
+    Serial.println(error.c_str());
+    c.success = false;
+    return c;
   }
+
   configFile.close();
 
+  Serial.println("Parsed json");
+
+  JsonVariant ssid = doc["ssid"];
+  JsonVariant password = doc["password"];
+  JsonVariant token = doc["token"];
+  if (ssid.isNull() || password.isNull() || token.isNull()) {
+    Serial.println("Invalid json");
+    c.success = false;
+    return c;
+  }
+
+  strcpy(c.ssid, ssid.as<char*>());
+  strcpy(c.password, password.as<char*>());
+  strcpy(c.token, token.as<char*>());
+  c.success = true;
+
+  Serial.println("Config values:");
+  Serial.print("Wifi SSID: ");
+  Serial.println(c.ssid);
+  Serial.print("Wifi password: ");
+  Serial.println(c.password);
+  Serial.print("Token: ");
+  Serial.println(c.token);
+
+  return c;
 }
 
 void saveConfig(char * token) {
   Serial.println("saving config");
 
-  //read updated parameters
-  strcpy(blynk_token, token);
-
   StaticJsonDocument<JSON_BUFFER> doc;
 
-  doc["mqtt_server"] = WiFi.SSID();
-  doc["mqtt_port"] = WiFi.psk();
-  doc["blynk_token"] = blynk_token;
+  doc["ssid"] = WiFi.SSID();
+  doc["password"] = WiFi.psk();
+  doc["token"] = token;
 
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
     Serial.println("failed to open config file for writing");
   } else {
     // Serialize JSON to file
-
-    // Serialize JSON to file
     if (serializeJson(doc, configFile) == 0) {
-      Serial.println(F("Failed to write to file"));
+      Serial.println("Failed to write to file");
     }
     configFile.close();
 
