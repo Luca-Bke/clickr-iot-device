@@ -1,0 +1,5 @@
+{
+  "mqtt_server":"mynetwork",
+  "mqtt_port":"password",
+  "blynk_token":"sometoken"
+}
