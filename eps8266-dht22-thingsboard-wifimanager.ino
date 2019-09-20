@@ -60,9 +60,6 @@ boolean isConfigMode;
 
 StoredConfig storedConfig;
 
-//flag for saving data
-bool shouldSaveConfig = false;
-
 void readMode() {
   // read the state of the pushbutton value:
   int buttonState = digitalRead(BUTTON_PIN);
