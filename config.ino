@@ -5,26 +5,49 @@ void printFile() {
     Serial.println("Failed to open config file");
     return;
   }
-  while (file.available()) {
-    Serial.print((char)file.read());
+  Serial.print("File size: ");
+  Serial.println(file.size());
+
+  if (file.size() > MAX_FILE_SIZE) {
+    Serial.print("Config file is too large: ");
+    Serial.println(file.size());
+  } else {
+    int i = 0;
+    while (i < MAX_FILE_SIZE && file.available()) {
+      i++;
+      Serial.print((char)file.read());
+    }
+    if (i == MAX_FILE_SIZE) {
+      Serial.println("\nUnexpected error");
+    }
   }
   file.close();
+  Serial.println();
 }
 
 StoredConfig readConfig() {
 
   printFile();
 
+  //for safety
+  delay(500);
+
   StoredConfig c;
   c.ssid[0] = '\0';
   c.password[0] = '\0';
+  strcpy(c.server, TB_SERVER_DEFAULT);
   c.token[0] = '\0';
+  c.success = false;
 
   Serial.println("Reading config file");
-  File configFile = SPIFFS.open(CONFIG_FILE, "r");
-  if (!configFile) {
+  File file = SPIFFS.open(CONFIG_FILE, "r");
+  if (!file) {
     Serial.println("Failed to open config file");
-    c.success = false;
+    return c;
+  }
+  if (file.size() > MAX_FILE_SIZE) {
+    Serial.print("Config file is too large: ");
+    Serial.println(file.size());
     return c;
   }
   Serial.println("Opened config file");
@@ -32,30 +55,46 @@ StoredConfig readConfig() {
   StaticJsonDocument<JSON_BUFFER_SIZE> doc;
 
   Serial.println("Deserializing config file");
-  DeserializationError error = deserializeJson(doc, configFile);
+  DeserializationError error = deserializeJson(doc, file);
   if (error) {
     Serial.print("Deserialize json failed: ");
     Serial.println(error.c_str());
-    c.success = false;
     return c;
   }
 
-  configFile.close();
+  file.close();
 
   Serial.println("Parsed json");
 
   JsonVariant ssid = doc[JSON_SSID];
   JsonVariant password = doc[JSON_PASSWORD];
+  JsonVariant server = doc[JSON_SERVER];
   JsonVariant token = doc[JSON_TOKEN];
-  if (ssid.isNull() || password.isNull() || token.isNull()) {
+  if (!ssid.isNull()) {
+    strcpy(c.ssid, ssid.as<char*>());
+  } else {
+    Serial.println("Missing field: ssid");
+  }
+  if (!password.isNull()) {
+    strcpy(c.password, password.as<char*>());
+  } else {
+    Serial.println("Missing field: password");
+  }
+  if (!server.isNull()) {
+    strcpy(c.server, server.as<char*>());
+  } else {
+    Serial.println("Missing field: server");
+  }
+  if (!token.isNull()) {
+    strcpy(c.token, token.as<char*>());
+  } else {
+    Serial.println("Missing field: token");
+  }
+  if (ssid.isNull() || password.isNull() || server.isNull() || token.isNull()) {
     Serial.println("Invalid json");
-    c.success = false;
     return c;
   }
 
-  strcpy(c.ssid, ssid.as<char*>());
-  strcpy(c.password, password.as<char*>());
-  strcpy(c.token, token.as<char*>());
   c.success = true;
 
   Serial.println("Config values:");
@@ -63,6 +102,8 @@ StoredConfig readConfig() {
   Serial.println(c.ssid);
   Serial.print("WiFi password: ");
   Serial.println(c.password);
+  Serial.print("Server: ");
+  Serial.println(c.server);
   Serial.print("Token: ");
   Serial.println(c.token);
 
@@ -76,6 +117,7 @@ void saveConfig(StoredConfig c) {
 
   doc[JSON_SSID] = c.ssid;
   doc[JSON_PASSWORD] = c.password;
+  doc[JSON_SERVER] = c.server;
   doc[JSON_TOKEN] = c.token;
 
   File configFile = SPIFFS.open(CONFIG_FILE, "w");
@@ -87,6 +129,9 @@ void saveConfig(StoredConfig c) {
       Serial.println("Failed to write to file");
     }
     configFile.close();
+
+    //for safety
+    delay(500);
 
     printFile();
   }

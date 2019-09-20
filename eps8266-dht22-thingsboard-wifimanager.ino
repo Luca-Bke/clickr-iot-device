@@ -15,36 +15,40 @@
 //sensor type is DHT22
 #define DHTTYPE DHT22
 //memory pool size for JsonDocument
-#define JSON_BUFFER_SIZE 512
+#define JSON_BUFFER_SIZE 1024
+//for safety
+#define MAX_FILE_SIZE 512
 //json field names
 #define JSON_SSID "ssid"
 #define JSON_PASSWORD "password"
+#define JSON_SERVER "server"
 #define JSON_TOKEN "token"
 //max sizes of paramaters in config
 #define SSID_SIZE 32
 #define PASSWORD_SIZE 64
+#define SERVER_SIZE 64
 #define TOKEN_SIZE 64
 //filename for config
 #define CONFIG_FILE "/config.json"
+//default server to send data to
+#define TB_SERVER_DEFAULT "demo.thingsboard.io"
 
 struct StoredConfig {
   char ssid[SSID_SIZE];
   char password[PASSWORD_SIZE];
+  char server[SERVER_SIZE];
   char token[TOKEN_SIZE];
-  boolean success;
+  boolean success = false;
 };
 
 struct SensorData {
   float temperature;
   float humidity;
-  boolean success;
+  boolean success = false;
 };
-
-char thingsboardServer[] = "demo.thingsboard.io";
 
 WiFiClient wifiClient;
 
-// Initialize DHT sensor.
 DHT dht(DHT_PIN, DHTTYPE);
 
 ThingsBoard tb(wifiClient);
@@ -58,12 +62,6 @@ StoredConfig storedConfig;
 
 //flag for saving data
 bool shouldSaveConfig = false;
-
-//callback notifying us of the need to save config
-void saveConfigCallback () {
-  Serial.println("Should save config");
-  shouldSaveConfig = true;
-}
 
 void readMode() {
   // read the state of the pushbutton value:
@@ -106,19 +104,21 @@ void setup()
   } else {
     Serial.println("failed to mount FS");
   }
-  //end read
 
   if (isConfigMode) {
-
     openWifiManager();
-
-  } else {
-    dht.begin();
-    delay(10);
-    InitWiFi();
-    lastSend = 0;
-
+    return;
   }
+
+  if (!storedConfig.success) {
+    return;
+  }
+
+  dht.begin();
+  delay(10);
+  lastSend = 0;
+
+  connectAndWaitWifi();
 }
 
 void loop()
@@ -148,33 +148,15 @@ void loop()
   tb.loop();
 }
 
-void InitWiFi()
-{
-  Serial.println("Connecting to AP ...");
-  // attempt to connect to WiFi network
-
-  WiFi.begin(storedConfig.ssid, storedConfig.password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("Connected to AP");
-}
-
 void reconnect() {
-  // Loop until we're reconnected
+  Serial.println("Connecting to ThingsBoard node");
   while (!tb.connected()) {
     status = WiFi.status();
     if ( status != WL_CONNECTED) {
-      WiFi.begin(storedConfig.ssid, storedConfig.password);
-      while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-      }
-      Serial.println("Connected to AP");
+      connectAndWaitWifi();
     }
     Serial.print("Connecting to ThingsBoard node ...");
-    if ( tb.connect(thingsboardServer, storedConfig.token) ) {
+    if ( tb.connect(storedConfig.server, storedConfig.token) ) {
       Serial.println( "[DONE]" );
     } else {
       Serial.print( "[FAILED]" );

@@ -1,5 +1,6 @@
 {
-  "ssid": "mynetwork",
-  "password": "password",
+  "ssid": "somenetwork",
+  "password": "somepassword",
+  "server": "someserver",
   "token": "sometoken"
 }

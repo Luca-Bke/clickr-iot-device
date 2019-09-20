@@ -1,17 +1,26 @@
+//callback notifying us of the need to save config
+void saveConfigCallback () {
+  Serial.println("Should save config");
+  shouldSaveConfig = true;
+}
+
 void openWifiManager() {
   Serial.println("Open wifimanager");
-  //TODO
+  Serial.println("Stored config values:");
   Serial.println(storedConfig.ssid);
   Serial.println(storedConfig.password);
+  Serial.println(storedConfig.server);
   Serial.println(storedConfig.token);
-
-  WiFiManagerParameter token_param("token", "Token", storedConfig.token, TOKEN_SIZE);
 
   WiFiManager wifiManager;
 
   //set config save notify callback
   wifiManager.setSaveConfigCallback(saveConfigCallback);
 
+  WiFiManagerParameter server_param("server", "Server", storedConfig.server, SERVER_SIZE);
+  wifiManager.addParameter(&server_param);
+
+  WiFiManagerParameter token_param("token", "Token", storedConfig.token, TOKEN_SIZE);
   wifiManager.addParameter(&token_param);
 
   //reset settings - for testing
@@ -28,19 +37,19 @@ void openWifiManager() {
   }
 
   //if you get here you have connected to the WiFi
-  Serial.println("connected...yeey :)");
+  Serial.println("Connected");
 
   //save the custom parameters to FS
   if (shouldSaveConfig) {
     StoredConfig c;
     strcpy(c.ssid, WiFi.SSID().c_str());
     strcpy(c.password, WiFi.psk().c_str());
+    strcpy(c.server, server_param.getValue());
     strcpy(c.token, token_param.getValue());
 
     saveConfig(c);
   }
 
-  Serial.println("local ip");
+  Serial.print("Local ip: ");
   Serial.println(WiFi.localIP());
-
 }
