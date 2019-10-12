@@ -10,9 +10,9 @@ SensorData readSensorData()
     Serial.println("Failed to read from DHT sensor!");
   } else {
     sd.success = true;
-    Serial.print("Temperature: ");
+    Serial.print("temperature: ");
     Serial.print(sd.temperature);
-    Serial.print(", Humidity: ");
+    Serial.print(", humidity: ");
     Serial.println(sd.humidity);
   }
 

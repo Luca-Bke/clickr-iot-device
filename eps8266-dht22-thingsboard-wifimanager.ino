@@ -87,6 +87,8 @@ void setup()
   //clean FS, for testing
   //SPIFFS.format();
 
+  initConfig(&storedConfig);
+  
   //read configuration from FS json
   Serial.println("mounting FS...");
 

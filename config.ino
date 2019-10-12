@@ -25,6 +25,14 @@ void printFile() {
   Serial.println();
 }
 
+void initConfig(StoredConfig * c) {
+  c->ssid[0] = '\0';
+  c->password[0] = '\0';
+  strcpy(c->server, TB_SERVER_DEFAULT);
+  c->token[0] = '\0';
+  c->success = false;
+}
+
 StoredConfig readConfig() {
 
   printFile();
@@ -33,11 +41,7 @@ StoredConfig readConfig() {
   delay(500);
 
   StoredConfig c;
-  c.ssid[0] = '\0';
-  c.password[0] = '\0';
-  strcpy(c.server, TB_SERVER_DEFAULT);
-  c.token[0] = '\0';
-  c.success = false;
+  initConfig(&c);
 
   Serial.println("Reading config file");
   File file = SPIFFS.open(CONFIG_FILE, "r");
