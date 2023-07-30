@@ -29,6 +29,7 @@ void initConfig(StoredConfig * c) {
   c->ssid[0] = '\0';
   c->password[0] = '\0';
   strcpy(c->server, TB_SERVER_DEFAULT);
+  strcpy(c->port, TB_PORT_DEFAULT);
   c->token[0] = '\0';
   c->success = false;
 }
@@ -73,6 +74,7 @@ StoredConfig readConfig() {
   JsonVariant ssid = doc[JSON_SSID];
   JsonVariant password = doc[JSON_PASSWORD];
   JsonVariant server = doc[JSON_SERVER];
+  JsonVariant port = doc[JSON_PORT];
   JsonVariant token = doc[JSON_TOKEN];
   if (!ssid.isNull()) {
     strcpy(c.ssid, ssid.as<char*>());
@@ -89,12 +91,17 @@ StoredConfig readConfig() {
   } else {
     Serial.println("Missing field: server");
   }
+  if (!port.isNull()) {
+    strcpy(c.port, port.as<char*>());
+  } else {
+    Serial.println("Missing field: port");
+  }
   if (!token.isNull()) {
     strcpy(c.token, token.as<char*>());
   } else {
     Serial.println("Missing field: token");
   }
-  if (ssid.isNull() || password.isNull() || server.isNull() || token.isNull()) {
+  if (ssid.isNull() || password.isNull() || server.isNull() || port.isNull() || token.isNull()) {
     Serial.println("Invalid json");
     return c;
   }
@@ -108,6 +115,8 @@ StoredConfig readConfig() {
   Serial.println(c.password);
   Serial.print("Server: ");
   Serial.println(c.server);
+  Serial.print("Port: ");
+  Serial.println(c.port);
   Serial.print("Token: ");
   Serial.println(c.token);
 
@@ -122,6 +131,7 @@ void saveConfig(StoredConfig c) {
   doc[JSON_SSID] = c.ssid;
   doc[JSON_PASSWORD] = c.password;
   doc[JSON_SERVER] = c.server;
+  doc[JSON_PORT] = c.port;
   doc[JSON_TOKEN] = c.token;
 
   File configFile = SPIFFS.open(CONFIG_FILE, "w");

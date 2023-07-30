@@ -2,5 +2,6 @@
   "ssid": "somenetwork",
   "password": "somepassword",
   "server": "someserver",
+  "port": "someport",
   "token": "sometoken"
 }

@@ -4,12 +4,16 @@ void openWifiManager() {
   Serial.println(storedConfig.ssid);
   Serial.println(storedConfig.password);
   Serial.println(storedConfig.server);
+  Serial.println(storedConfig.port);
   Serial.println(storedConfig.token);
 
   WiFiManager wifiManager;
 
   WiFiManagerParameter server_param("server", "Server", storedConfig.server, SERVER_SIZE);
   wifiManager.addParameter(&server_param);
+
+  WiFiManagerParameter port_param("port", "Port", storedConfig.port, PORT_SIZE);
+  wifiManager.addParameter(&port_param);
 
   WiFiManagerParameter token_param("token", "Token", storedConfig.token, TOKEN_SIZE);
   wifiManager.addParameter(&token_param);
@@ -36,6 +40,7 @@ void openWifiManager() {
   strcpy(c.ssid, WiFi.SSID().c_str());
   strcpy(c.password, WiFi.psk().c_str());
   strcpy(c.server, server_param.getValue());
+  strcpy(c.port, port_param.getValue());
   strcpy(c.token, token_param.getValue());
 
   saveConfig(c);
